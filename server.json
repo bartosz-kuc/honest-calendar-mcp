@@ -1,0 +1,18 @@
+{
+  "$schema": "https://modelcontextprotocol.io/schemas/server.json",
+  "name": "honest-calendar-mcp",
+  "description": "Local MCP server for Google Calendar — read, create, update events with your Google account directly.",
+  "repository": {
+    "url": "https://github.com/bartosz-kuc/honest-calendar-mcp",
+    "source": "github"
+  },
+  "version": "0.1.0",
+  "packages": [
+    {
+      "registry_name": "pypi",
+      "name": "honest-calendar-mcp",
+      "version": "0.1.0",
+      "runtime_hint": "uvx"
+    }
+  ]
+}
