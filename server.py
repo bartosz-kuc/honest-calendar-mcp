@@ -19,9 +19,10 @@ from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
 from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient.discovery import build
+from mcp import types
 from mcp.server import Server
 from mcp.server.stdio import stdio_server
-from mcp.types import TextContent, Tool
+from mcp.types import CallToolResult, ListToolsResult, TextContent, Tool
 
 SCOPES = ["https://www.googleapis.com/auth/calendar"]
 
@@ -47,8 +48,7 @@ def get_service():
 server = Server("calendar-personal")
 
 
-@server.list_tools()
-async def list_tools() -> list[Tool]:
+async def _list_tools() -> list[Tool]:
     return [
         Tool(
             name="list_calendars",
@@ -171,8 +171,7 @@ def _build_event_body(args: dict, tz_default: str) -> dict:
     return body
 
 
-@server.call_tool()
-async def call_tool(name: str, arguments: dict[str, Any]) -> list[TextContent]:
+async def _call_tool(name: str, arguments: dict[str, Any]) -> list[TextContent]:
     svc = get_service()
 
     if name == "list_calendars":
@@ -253,6 +252,18 @@ async def call_tool(name: str, arguments: dict[str, Any]) -> list[TextContent]:
         return [TextContent(type="text", text=json.dumps({"deleted": True, "id": arguments["event_id"]}))]
 
     raise ValueError(f"Unknown tool: {name}")
+
+
+async def on_list_tools(ctx, params) -> ListToolsResult:
+    return ListToolsResult(tools=await _list_tools())
+
+
+async def on_call_tool(ctx, params) -> CallToolResult:
+    return CallToolResult(content=await _call_tool(params.name, params.arguments or {}))
+
+
+server.add_request_handler("tools/list", types.PaginatedRequestParams, on_list_tools)
+server.add_request_handler("tools/call", types.CallToolRequestParams, on_call_tool)
 
 
 async def main():
