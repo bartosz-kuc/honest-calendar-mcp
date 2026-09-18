@@ -19,7 +19,7 @@ Six tools exposed over MCP:
 - `list_calendars` — all calendars available on this account
 - `list_events` — events in a calendar within a time range, with optional free-text search
 - `get_event` — full details of a single event
-- `create_event` — new event (timed or all-day), with attendees, description, location, timezone
+- `create_event` — new event (timed or all-day), with attendees, description, location, timezone, recurrence (RRULE), transparency (busy/free), and reminders
 - `update_event` — partial patch of an existing event
 - `delete_event` — delete an event
 
@@ -81,6 +81,43 @@ claude mcp add calendar-personal /absolute/path/to/venv/bin/python /absolute/pat
 }
 ```
 
+### 5. Multiple accounts (optional)
+
+Run one server instance per Google account, each with its own token file — no code changes. Three env vars override the defaults:
+
+| Env var | Default | Purpose |
+|---|---|---|
+| `CALENDAR_TOKEN_PATH` | `token.json` | per-account token file |
+| `CALENDAR_CREDENTIALS_PATH` | `credentials.json` | OAuth client (can be shared across accounts) |
+| `CALENDAR_SERVER_NAME` | `calendar-personal` | MCP server name |
+
+Authorize a second account (writes a separate token; sign in as that account in the browser):
+
+```bash
+CALENDAR_TOKEN_PATH="$PWD/token.work.json" ./venv/bin/python authorize.py
+```
+
+Then register a second instance pointing at that token, e.g. in `claude_desktop_config.json`:
+
+```json
+{
+  "mcpServers": {
+    "calendar-personal": {
+      "command": "/absolute/path/to/venv/bin/python",
+      "args": ["/absolute/path/to/server.py"]
+    },
+    "calendar-work": {
+      "command": "/absolute/path/to/venv/bin/python",
+      "args": ["/absolute/path/to/server.py"],
+      "env": {
+        "CALENDAR_TOKEN_PATH": "/absolute/path/to/token.work.json",
+        "CALENDAR_SERVER_NAME": "calendar-work"
+      }
+    }
+  }
+}
+```
+
 ## Example usage
 
 > "What's on my calendar tomorrow?"
@@ -90,6 +127,10 @@ AI calls `list_events` with tomorrow's time range → gets back events with summ
 > "Book a 1h call with alice@example.com next Thursday at 15:00."
 
 AI calls `create_event` with summary, start, end, attendees, `send_updates: "all"` if you want Alice invited.
+
+> "Add my Tuesday 19:30 kettlebells class every week, mark me free, no reminders."
+
+AI calls `create_event` with `recurrence: ["RRULE:FREQ=WEEKLY"]`, `transparency: "transparent"`, and `reminders: {"useDefault": false}`.
 
 ## Data flow (detail)
 
@@ -101,14 +142,14 @@ This server (Python, on your machine)
 Google Calendar API
 ```
 
-No cloud middle. No telemetry. `credentials.json` and `token.json` stay on your disk and are `.gitignore`d.
+No cloud middle. No telemetry. `credentials.json` and every `token*.json` stay on your disk and are `.gitignore`d.
 
 ## Security notes
 
 - **You own the OAuth client.** Nobody else can revoke, rotate, or misuse it.
 - **Revoke anytime** at https://myaccount.google.com/permissions.
 - **Scope requested:** `calendar` (full read/write on all your calendars). Google does not offer read-only + write-only splits for the standard Calendar scope; the write-heavy nature of a calendar-editing tool needs full scope.
-- **No secrets in git.** `.gitignore` blocks `credentials.json`, `token.json`, and virtualenvs.
+- **No secrets in git.** `.gitignore` blocks `credentials.json`, `token.json`, per-account `token.*.json`, and virtualenvs.
 - **send_updates defaults to "none"** — the AI cannot accidentally spam attendees. You must explicitly ask for updates to be sent.
 
 ## Author

@@ -12,6 +12,7 @@ License: MIT
 
 import asyncio
 import json
+import os
 from pathlib import Path
 from typing import Any
 
@@ -27,8 +28,13 @@ from mcp.types import CallToolResult, ListToolsResult, TextContent, Tool
 SCOPES = ["https://www.googleapis.com/auth/calendar"]
 
 HERE = Path(__file__).parent
-CRED_PATH = HERE / "credentials.json"
-TOKEN_PATH = HERE / "token.json"
+# Multi-account: point CALENDAR_TOKEN_PATH at a per-account token file
+# (e.g. token.kucio012.json) to run a second instance for another Google
+# account, mirroring honest-gmail-mcp's GMAIL_TOKEN_PATH. Defaults keep the
+# original single-account behaviour.
+CRED_PATH = Path(os.environ.get("CALENDAR_CREDENTIALS_PATH", str(HERE / "credentials.json")))
+TOKEN_PATH = Path(os.environ.get("CALENDAR_TOKEN_PATH", str(HERE / "token.json")))
+SERVER_NAME = os.environ.get("CALENDAR_SERVER_NAME", "calendar-personal")
 
 
 def get_service():
@@ -45,7 +51,7 @@ def get_service():
     return build("calendar", "v3", credentials=creds, cache_discovery=False)
 
 
-server = Server("calendar-personal")
+server = Server(SERVER_NAME)
 
 
 async def _list_tools() -> list[Tool]:
@@ -102,6 +108,20 @@ async def _list_tools() -> list[Tool]:
                     "location": {"type": "string"},
                     "attendees": {"type": "array", "items": {"type": "string"}},
                     "timezone": {"type": "string", "description": "IANA tz like Europe/Warsaw, default Europe/Warsaw"},
+                    "recurrence": {
+                        "type": "array",
+                        "items": {"type": "string"},
+                        "description": "Recurrence lines (RRULE/RDATE/EXDATE), e.g. [\"RRULE:FREQ=WEEKLY\"] for a weekly repeat.",
+                    },
+                    "transparency": {
+                        "type": "string",
+                        "enum": ["opaque", "transparent"],
+                        "description": "opaque = shows as Busy (default); transparent = shows as Free/available.",
+                    },
+                    "reminders": {
+                        "type": "object",
+                        "description": "Google reminders object. {\"useDefault\": false} = no reminders; {\"useDefault\": false, \"overrides\": [{\"method\": \"popup\", \"minutes\": 30}]} = custom.",
+                    },
                     "send_updates": {"type": "string", "enum": ["all", "externalOnly", "none"], "default": "none"},
                 },
                 "required": ["summary", "start", "end"],
@@ -125,6 +145,20 @@ async def _list_tools() -> list[Tool]:
                     "location": {"type": "string"},
                     "attendees": {"type": "array", "items": {"type": "string"}},
                     "timezone": {"type": "string"},
+                    "recurrence": {
+                        "type": "array",
+                        "items": {"type": "string"},
+                        "description": "Recurrence lines (RRULE/RDATE/EXDATE), e.g. [\"RRULE:FREQ=WEEKLY\"].",
+                    },
+                    "transparency": {
+                        "type": "string",
+                        "enum": ["opaque", "transparent"],
+                        "description": "opaque = Busy; transparent = Free/available.",
+                    },
+                    "reminders": {
+                        "type": "object",
+                        "description": "Google reminders object. {\"useDefault\": false} = no reminders.",
+                    },
                     "send_updates": {"type": "string", "enum": ["all", "externalOnly", "none"], "default": "none"},
                 },
                 "required": ["event_id"],
@@ -168,6 +202,17 @@ def _build_event_body(args: dict, tz_default: str) -> dict:
         body["end"] = _time_field(args["end"], tz)
     if "attendees" in args:
         body["attendees"] = [{"email": a} for a in args["attendees"]]
+    if "recurrence" in args:
+        # List of RRULE/RDATE/EXDATE lines, e.g. ["RRULE:FREQ=WEEKLY"].
+        body["recurrence"] = args["recurrence"]
+    if "transparency" in args:
+        # "opaque" = shows as Busy; "transparent" = shows as Free/available.
+        body["transparency"] = args["transparency"]
+    if "reminders" in args:
+        # Pass-through Google reminders object, e.g. {"useDefault": false} for
+        # no reminders, or {"useDefault": false, "overrides": [{"method":
+        # "popup", "minutes": 30}]}.
+        body["reminders"] = args["reminders"]
     return body
 
 
