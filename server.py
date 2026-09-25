@@ -29,7 +29,7 @@ SCOPES = ["https://www.googleapis.com/auth/calendar"]
 
 HERE = Path(__file__).parent
 # Multi-account: point CALENDAR_TOKEN_PATH at a per-account token file
-# (e.g. token.kucio012.json) to run a second instance for another Google
+# (e.g. token.work.json) to run a second instance for another Google
 # account, mirroring honest-gmail-mcp's GMAIL_TOKEN_PATH. Defaults keep the
 # original single-account behaviour.
 CRED_PATH = Path(os.environ.get("CALENDAR_CREDENTIALS_PATH", str(HERE / "credentials.json")))
