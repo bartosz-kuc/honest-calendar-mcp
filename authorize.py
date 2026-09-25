@@ -5,10 +5,10 @@ Opens a browser, you pick the Google account and grant Calendar access, and the
 refresh token is written to CALENDAR_TOKEN_PATH (default: token.json next to
 this file). Reuses the same OAuth client as the rest of the honest-mcp family.
 
-Usage (authorize a second account, e.g. kucio012):
+Usage (authorize a second account, e.g. a work account):
 
-    cd /Users/bartoszkuc/calendar-mcp
-    CALENDAR_TOKEN_PATH="$PWD/token.kucio012.json" ./venv/bin/python authorize.py
+    cd honest-calendar-mcp
+    CALENDAR_TOKEN_PATH="$PWD/token.work.json" ./venv/bin/python authorize.py
 
 Then sign in as the desired account in the browser window and click Allow.
 """

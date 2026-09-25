@@ -8,9 +8,9 @@ Companion project to [honest-gmail-mcp](https://github.com/bartosz-kuc/honest-gm
 
 Most Calendar integrations for AI assistants route your event data through a hosted service that sees everything: meetings, attendees, locations, private descriptions. This one doesn't.
 
-**Data flow:** `You ↔ this server (on your Mac) ↔ Google Calendar API`. That's it.
+**Data flow:** `You ↔ this server (on your machine) ↔ Google Calendar API`. That's it.
 
-**You can read the entire server** — one file, ~250 lines of Python — and confirm exactly what it can and cannot do.
+**You can read the entire server** — one file, a few hundred lines of Python — and confirm exactly what it can and cannot do.
 
 ## Features
 
@@ -42,6 +42,8 @@ python3 -m venv venv
 ./venv/bin/pip install -r requirements.txt
 ```
 
+On Windows, use `python` instead of `python3`, and `venv\Scripts\pip` / `venv\Scripts\python` (`venv\Scripts\python.exe` in client configs) wherever this README shows `venv/bin/...`.
+
 ### 2. Get Google OAuth credentials
 
 Same process as honest-gmail-mcp — a Desktop-app OAuth client from your own Google Cloud project. If you already have a project set up, just enable the Calendar API on it:
@@ -52,13 +54,13 @@ Same process as honest-gmail-mcp — a Desktop-app OAuth client from your own Go
 4. Reuse existing OAuth consent screen / client, OR create new — Desktop app type
 5. Save `credentials.json` in this repo's root directory
 
-### 3. First run (does the OAuth dance)
+### 3. Authorize (one-time OAuth)
 
 ```bash
-./venv/bin/python server.py
+./venv/bin/python authorize.py
 ```
 
-Browser opens → sign in → **Allow**. Token saved locally as `token.json`. Press Ctrl+C after.
+Browser opens → sign in → **Allow**. Token saved locally as `token.json`. (If no token exists, the server also starts this flow on the first tool call.)
 
 ### 4. Register with your MCP client
 
@@ -97,6 +99,8 @@ Authorize a second account (writes a separate token; sign in as that account in 
 CALENDAR_TOKEN_PATH="$PWD/token.work.json" ./venv/bin/python authorize.py
 ```
 
+(PowerShell: `$env:CALENDAR_TOKEN_PATH = "$PWD\token.work.json"`, then `venv\Scripts\python authorize.py`.)
+
 Then register a second instance pointing at that token, e.g. in `claude_desktop_config.json`:
 
 ```json
@@ -117,6 +121,27 @@ Then register a second instance pointing at that token, e.g. in `claude_desktop_
   }
 }
 ```
+
+### Alternative: install from PyPI (uvx)
+
+The package is published on PyPI as `honest-calendar-mcp`. Installed as a package, the default `credentials.json` / `token.json` paths resolve next to the installed module (inside the environment's `site-packages`), so set absolute paths with the env vars from step 5. This needs a release newer than 0.1.0: 0.1.0 does not read these env vars and fails to start with mcp 2.x.
+
+```json
+{
+  "mcpServers": {
+    "calendar-personal": {
+      "command": "uvx",
+      "args": ["honest-calendar-mcp"],
+      "env": {
+        "CALENDAR_CREDENTIALS_PATH": "/absolute/path/to/credentials.json",
+        "CALENDAR_TOKEN_PATH": "/absolute/path/to/token.json"
+      }
+    }
+  }
+}
+```
+
+`authorize.py` is not part of the package. If the token file does not exist yet, the server opens the browser for OAuth on the first tool call and writes the token to `CALENDAR_TOKEN_PATH`.
 
 ## Example usage
 
