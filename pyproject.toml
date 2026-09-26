@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "honest-calendar-mcp"
-version = "0.1.0"
+version = "0.2.0"
 description = "Local MCP server for Google Calendar — read, create, update events with your Google account directly."
 readme = "README.md"
 license = "MIT"
@@ -27,6 +27,7 @@ dependencies = [
     "google-auth>=2.0.0",
     "google-auth-oauthlib>=1.0.0",
     "google-api-python-client>=2.0.0",
+    "google-auth-httplib2>=0.4.1",
 ]
 
 [project.urls]

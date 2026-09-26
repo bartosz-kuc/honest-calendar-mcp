@@ -124,7 +124,7 @@ Then register a second instance pointing at that token, e.g. in `claude_desktop_
 
 ### Alternative: install from PyPI (uvx)
 
-The package is published on PyPI as `honest-calendar-mcp`. Installed as a package, the default `credentials.json` / `token.json` paths resolve next to the installed module (inside the environment's `site-packages`), so set absolute paths with the env vars from step 5. This needs a release newer than 0.1.0: 0.1.0 does not read these env vars and fails to start with mcp 2.x.
+The package is published on PyPI as `honest-calendar-mcp`. Installed as a package, the default `credentials.json` / `token.json` paths resolve next to the installed module (inside the environment's `site-packages`), so set absolute paths with the env vars from step 5. This needs version 0.2.0 or newer: 0.1.0 does not read these env vars and fails to start with mcp 2.x.
 
 ```json
 {
